@@ -6,7 +6,7 @@ Click on the name, use the provided login creditentials. Provide details in your
 
 [![Open in Streamlit](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://blank-app-template.streamlit.app/)
 
-1.[![Relationship Quiz](https://github.com/aswestwood-lovely/suite/app.py)]
+1.[[Relationship Quiz]([https://github.com/aswestwood-lovely/suite/app.py](http://172.210.53.197:8501)]
 2. Debt Calculator
 3. IOU Loan
 4. Resume Builder
