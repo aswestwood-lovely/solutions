@@ -6,7 +6,17 @@
       "due_day": 8,
       "apr": 24.99,
       "min_payment": 325.0,
-      "notes": ""
+      "notes": "",
+      "id": "61d33155-c1cd-4387-b4e3-59844f596ada"
+    },
+    {
+      "name": "Bank of America",
+      "amount": 17000.0,
+      "due_day": 1,
+      "apr": 21.99,
+      "min_payment": 350.0,
+      "notes": "",
+      "id": "6ec398ed-b09d-45b5-b0bc-03d7def4e052"
     }
   ]
 }
