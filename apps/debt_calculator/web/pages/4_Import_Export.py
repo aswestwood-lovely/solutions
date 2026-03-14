@@ -45,11 +45,10 @@ with c1:
     )
 
     st.write("")
-
     st.write("### Excel (.xlsx)")
+
     if bills:
         out = BytesIO()
-        # Ensure consistent column order
         preferred_cols = [
             "name", "amount", "due_day", "apr", "min_payment", "planned_payment",
             "include_in_strategy", "status", "override", "custom_order", "notes"
@@ -106,14 +105,15 @@ with tab_json:
             if not isinstance(incoming_bills, list):
                 raise ValueError("Invalid JSON: 'bills' must be a list.")
 
-            def normalize_bill(b: dict) -> dict | None:
-                name = str(b.get("name", "")).strip()
-                amount = float(b.get("amount", 0.0) or 0.0)
-                if not name or amount <= 0:
-                    return None
-                return {
-                    "name": name,
-                    "amount": amount,
+            cleaned = []
+            for b in incoming_bills:
+                if not isinstance(b, dict):
+                    continue
+
+                # normalize into our expected structure
+                nb = {
+                    "name": str(b.get("name", "")).strip(),
+                    "amount": float(b.get("amount", 0.0) or 0.0),
                     "due_day": int(b.get("due_day", 1) or 1),
                     "apr": float(b.get("apr", 0.0) or 0.0),
                     "min_payment": float(b.get("min_payment", 0.0) or 0.0),
@@ -125,14 +125,12 @@ with tab_json:
                     "notes": str(b.get("notes", "") or "").strip(),
                 }
 
-            cleaned = []
-            for b in incoming_bills:
-                if isinstance(b, dict):
-                    nb = normalize_bill(b)
-                    if nb:
-                        cleaned.append(nb)
+                # validate
+                ok, errs, cb = validate_bill(nb)
+                if ok:
+                    cleaned.append(cb)
 
-            st.success(f"Parsed {len(cleaned)} bills from JSON.")
+            st.success(f"Validated {len(cleaned)} bills from JSON.")
             st.dataframe(pd.DataFrame(cleaned), use_container_width=True, hide_index=True)
 
             colA, colB = st.columns(2)
@@ -151,22 +149,6 @@ with tab_json:
         except Exception as e:
             st.error(f"Import failed: {e}")
 
-validated = []
-bad = []
-for i, b in enumerate(cleaned):
-    ok, errs, cb = validate_bill(b)
-    if ok:
-        validated.append(cb)
-    else:
-        bad.append((i, errs))
-
-if bad:
-    st.warning(f"{len(bad)} rows were rejected due to validation errors.")
-    for i, errs in bad[:10]:
-        st.write(f"- Row {i}: " + "; ".join(errs))
-
-cleaned = validated
-
 # ---------- EXCEL IMPORT ----------
 with tab_excel:
     uploaded_xlsx = st.file_uploader("Upload Excel (.xlsx)", type=["xlsx"], key="import_excel_uploader")
@@ -180,7 +162,6 @@ with tab_excel:
             st.divider()
             st.write("### Map your columns")
 
-            # Expected fields
             expected = {
                 "name": "name",
                 "amount": "amount",
@@ -195,7 +176,6 @@ with tab_excel:
             }
 
             cols = ["(none)"] + list(incoming_df.columns)
-
             mapping = {}
             map_cols = st.columns(2)
             i = 0
@@ -209,7 +189,10 @@ with tab_excel:
                     )
                 i += 1
 
-            st.caption("Override is optional. If you want it, include a column named 'override' containing JSON like {'payment': 200}.")
+            st.caption(
+                "Override is optional. If you want it, include a column named 'override' containing JSON like "
+                '{"payment": 200} or {"target_months": 12}.'
+            )
 
             override_col = st.selectbox(
                 "override column (optional)",
@@ -225,7 +208,9 @@ with tab_excel:
                 return row.get(col)
 
             cleaned = []
-            for _, row in incoming_df.iterrows():
+            rejected = []
+
+            for ridx, row in incoming_df.iterrows():
                 name = str(get_val(row, "name") or "").strip()
                 amount = float(get_val(row, "amount") or 0.0)
 
@@ -256,29 +241,37 @@ with tab_excel:
                         try:
                             override = json.loads(raw_override)
                         except Exception:
-                            # if not valid JSON, ignore
                             override = {}
                     elif isinstance(raw_override, dict):
                         override = raw_override
 
-                cleaned.append(
-                    {
-                        "name": name,
-                        "amount": amount,
-                        "due_day": due_day,
-                        "apr": apr,
-                        "min_payment": min_payment,
-                        "planned_payment": planned_payment,
-                        "include_in_strategy": include_in_strategy,
-                        "status": status,
-                        "override": override,
-                        "custom_order": custom_order,
-                        "notes": notes,
-                    }
-                )
+                candidate = {
+                    "name": name,
+                    "amount": amount,
+                    "due_day": due_day,
+                    "apr": apr,
+                    "min_payment": min_payment,
+                    "planned_payment": planned_payment,
+                    "include_in_strategy": include_in_strategy,
+                    "status": status,
+                    "override": override,
+                    "custom_order": custom_order,
+                    "notes": notes,
+                }
+
+                ok, errs, cb = validate_bill(candidate)
+                if ok:
+                    cleaned.append(cb)
+                else:
+                    rejected.append((int(ridx), errs))
+
+            if rejected:
+                st.warning(f"Rejected {len(rejected)} rows due to validation errors (showing first 10):")
+                for ridx, errs in rejected[:10]:
+                    st.write(f"- Row {ridx}: " + "; ".join(errs))
 
             st.divider()
-            st.success(f"Parsed {len(cleaned)} bills from Excel.")
+            st.success(f"Validated {len(cleaned)} bills from Excel.")
             st.dataframe(pd.DataFrame(cleaned), use_container_width=True, hide_index=True)
 
             colA, colB = st.columns(2)
