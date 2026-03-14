@@ -2,8 +2,9 @@ import streamlit as st
 import sys
 from pathlib import Path
 import pandas as pd
+from datetime import date
 
-BASE = Path(__file__).resolve().parents[2]
+BASE = Path(__file__).resolve().parents[2]  # .../apps/debt_calculator
 sys.path.insert(0, str(BASE / "shared"))
 sys.path.insert(0, str(BASE / "web"))
 
@@ -13,7 +14,7 @@ import core.payoff as payoff
 st.set_page_config(page_title="Recommendations • Debt Calculator", page_icon="✅", layout="wide")
 
 st.title("Recommendations")
-st.caption("Actionable suggestions based on your current debts and payoff plan settings.")
+st.caption("Actionable suggestions based on your debts, payoff plan settings, and risk checks.")
 
 active = get_active_profile()
 bills = (load_section("bills") or {}).get("items", []) or []
@@ -44,71 +45,90 @@ if not bills:
 debts = bills_to_debts(bills)
 
 # Controls
-c1, c2, c3 = st.columns([1.2, 1, 1])
+c1, c2, c3, c4 = st.columns([1.2, 1, 1, 1])
 with c1:
     strategy = st.selectbox("Strategy", ["Avalanche", "Snowball", "Custom"], index=0)
 with c2:
     extra_payment = st.number_input("Extra monthly payment", min_value=0.0, step=25.0, value=0.0, format="%.2f")
 with c3:
     status_override = st.checkbox("Status override priority", value=True)
+with c4:
+    start = st.date_input("Start date", value=date.today())
 
 plan = payoff.monthly_plan(debts, strategy=strategy, extra_payment=float(extra_payment), status_override=bool(status_override))
 plan_df = pd.DataFrame(plan)
 
+# ---------- Recommendations ----------
 st.divider()
-st.subheader("What to do next")
+st.subheader("Recommendations")
 
 recs = []
 
-# 1) Payment too low warning (interest-only risk)
+# 1) Payment too low to cover interest (risk: never pays down)
 for d in debts:
-    if d["apr"] > 0 and d["planned_payment"] > 0:
-        monthly_interest = d["balance"] * (d["apr"] / 100.0) / 12.0
-        if d["planned_payment"] <= monthly_interest:
-            recs.append(
-                ("High priority",
-                 f"Increase payment for **{d['name']}**. Current planned payment may not cover monthly interest.",
-                 f"Monthly interest est: ${monthly_interest:,.2f} vs payment ${d['planned_payment']:,.2f}.")
-            )
+    if not d.get("include_in_strategy", True):
+        continue
+    if d["balance"] <= 0:
+        continue
+    apr = float(d.get("apr", 0.0))
+    pay = float(d.get("planned_payment", 0.0))
+    if apr > 0 and pay > 0:
+        monthly_interest = d["balance"] * (apr / 100.0) / 12.0
+        if pay <= monthly_interest:
+            recs.append((
+                "High priority",
+                f"Increase payment for **{d['name']}**",
+                f"Your planned payment (${pay:,.2f}) may not cover monthly interest (~${monthly_interest:,.2f})."
+            ))
 
 # 2) Missing min payments
 for d in debts:
-    if d["balance"] > 0 and d["min_payment"] <= 0:
-        recs.append(
-            ("High priority",
-             f"Add a minimum payment for **{d['name']}**.",
-             "Payoff planning works best with a realistic minimum payment.")
-        )
+    if d["balance"] > 0 and float(d.get("min_payment", 0.0)) <= 0:
+        recs.append((
+            "High priority",
+            f"Add a minimum payment for **{d['name']}**",
+            "Payoff planning works best when each debt has a realistic minimum payment."
+        ))
 
-# 3) Delinquent/Collections suggestion
+# 3) Status issues
 for d in debts:
-    if str(d.get("status", "")).lower() in {"delinquent", "collections"}:
-        recs.append(
-            ("Important",
-             f"Address **{d['name']}** status = {d.get('status')}.",
-             "Consider contacting the creditor and prioritizing stabilization before aggressive extra payments.")
-        )
+    status = str(d.get("status", "Current")).lower()
+    if status in {"delinquent", "collections"}:
+        recs.append((
+            "Important",
+            f"Stabilize **{d['name']}** (status: {d.get('status')})",
+            "Consider contacting the creditor, confirming terms, and preventing fees before aggressive extra payments."
+        ))
 
-# 4) Plan-based suggestion: focus debt with most extra allocation
+# 4) Strategy alignment
+if strategy == "Avalanche":
+    recs.append(("Tip", "Avalanche minimizes interest", "Focus stays on highest APR debt once minimums are covered."))
+elif strategy == "Snowball":
+    recs.append(("Tip", "Snowball builds momentum", "Focus stays on smallest balance first for quick wins."))
+
+# 5) Extra allocation highlight
 if not plan_df.empty:
     extra_alloc = plan_df[plan_df["kind"] == "extra"].copy()
     if not extra_alloc.empty:
         top = extra_alloc.sort_values("payment", ascending=False).head(1).iloc[0]
-        recs.append(
-            ("Good move",
-             f"Your strategy targets **{top['name']}** with the most extra payment.",
-             "Stay consistent month to month for best payoff results.")
-        )
+        recs.append((
+            "Good move",
+            f"Extra payment is primarily targeting **{top['name']}**",
+            "Consistency month-to-month is what makes the plan work."
+        ))
 
-# 5) General strategy suggestion
-recs.append(
-    ("Tip",
-     f"Use **Avalanche** to minimize interest or **Snowball** for motivation wins.",
-     "If you choose Custom, set a clear custom order and review it monthly.")
-)
+# 6) Overrides present
+for d in debts:
+    ov = d.get("override") or {}
+    if isinstance(ov, dict) and ov:
+        recs.append((
+            "Note",
+            f"Override active on **{d['name']}**",
+            f"Override settings: {ov}. Make sure this matches your intent."
+        ))
 
 if not recs:
-    st.success("No critical issues detected. Your setup looks solid.")
+    st.success("No major issues detected. Your setup looks solid.")
 else:
     for level, title, detail in recs:
         st.markdown(f"### {level}: {title}")
