@@ -51,4 +51,15 @@ APPS = [
         "demo_url": "",
         "docs_url": "",
     },
+    {
+        "id": "iou_manager",
+        "name": "IOU / Personal Loan Manager",
+        "category": "Finance",
+        "summary": "Track loans you owe/are owed, schedules, payments, and export agreements.",
+        "tags": ["Loans", "Payments", "PDF/Exports"],
+        "access": "Member",
+        "web_url": "",       # paste hosted URL later
+        "download_url": "",  # later: desktop build link
+        "docs_url": "",
+    },
 ]
