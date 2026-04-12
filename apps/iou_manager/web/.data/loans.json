@@ -1,0 +1,16 @@
+[
+  {
+    "borrower": "Eugene",
+    "principal": 3500.0,
+    "apr": 0.0,
+    "start_date": "2026-04-17",
+    "term_months": 72,
+    "notes": "",
+    "payments": [
+      {
+        "date": "2026-04-11",
+        "amount": 250.0
+      }
+    ]
+  }
+]
