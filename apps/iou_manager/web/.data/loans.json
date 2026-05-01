@@ -13,11 +13,13 @@
     ],
     "borrower_id": "0d9903666a014f27b740a917b73c99f4",
     "id": "cb6556a5208d45c4a0e2efec37602932",
-    "payment_due_day": 1,
     "agreed_payment": 0.0,
     "monthly_payment": 48.611111111111114,
     "remind_email": true,
-    "remind_text": false
+    "remind_text": false,
+    "payment_frequency": "Monthly",
+    "payment_per_period": 48.611111111111114,
+    "term_periods": 72
   },
   {
     "id": "36ee28c4c63449f595a24d167b9c55c1",
@@ -28,11 +30,13 @@
     "term_months": 6,
     "notes": "",
     "payments": [],
-    "payment_due_day": 1,
     "agreed_payment": 0.0,
     "monthly_payment": 166.66666666666666,
     "remind_email": true,
-    "remind_text": false
+    "remind_text": false,
+    "payment_frequency": "Monthly",
+    "payment_per_period": 166.66666666666666,
+    "term_periods": 6
   },
   {
     "id": "464c62b080dc460093e9c5e0557c3653",
@@ -43,10 +47,12 @@
     "term_months": 84,
     "notes": "This is for new furniture",
     "payments": [],
-    "payment_due_day": 1,
     "agreed_payment": 0.0,
     "monthly_payment": 59.523809523809526,
     "remind_email": true,
-    "remind_text": false
+    "remind_text": false,
+    "payment_frequency": "Monthly",
+    "payment_per_period": 59.523809523809526,
+    "term_periods": 84
   }
 ]
