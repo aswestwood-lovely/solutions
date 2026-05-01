@@ -3,11 +3,11 @@ import streamlit as st
 st.set_page_config(page_title="Data Analytics Tool (Web)", page_icon="📈", layout="wide")
 
 st.title("Data Analytics Tool (Web)")
-st.caption("Upload data, explore, chart, and export.")
+st.caption("Streamlit UI using your analytics_core + SQLite pipeline (import → preview → KPIs → chart).")
 
 st.markdown("### Pages")
-st.write("- Explore: upload + profile your dataset")
-st.write("- Charts: quick visuals")
-st.write("- Export: download cleaned data + summary")
+st.write("- **Import**: upload a file into SQLite (dataset + staging table)")
+st.write("- **Preview + KPIs**: choose dataset/table, filter, preview, KPIs")
+st.write("- **Charts**: quick bar chart (category vs SUM(numeric))")
 
-st.info("Go to **Explore** to upload your first dataset.")
+st.info("Start on **Import**.")
