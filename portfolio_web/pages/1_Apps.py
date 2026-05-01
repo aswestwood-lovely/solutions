@@ -1,9 +1,20 @@
+# portfolio_web/pages/1_Apps.py
+
 import streamlit as st
 from data.apps import APPS
-from components.ui import inject_css, app_card, filter_apps
+from components.ui import inject_css, app_card, filter_apps, app_open_url
 
 st.set_page_config(page_title="Apps • Lovely1 Solutions", page_icon="🧩", layout="wide")
 inject_css()
+
+# Sidebar: Dev Mode toggle (keep consistent with Home)
+with st.sidebar:
+    st.session_state["dev_mode"] = st.toggle(
+        "Local Dev Mode",
+        value=st.session_state.get("dev_mode", True),
+    )
+    st.caption("Dev Mode uses localhost ports. Turn off to use hosted URLs.")
+    st.query_params["dev"] = "1" if st.session_state["dev_mode"] else "0"
 
 st.title("Apps")
 st.caption("Search, filter, and open your tools. This page reads from portfolio_web/data/apps.py.")
@@ -17,7 +28,7 @@ with c1:
 with c2:
     access_levels = st.multiselect("Access", access_options, default=access_options)
 with c3:
-    search = st.text_input("Search", placeholder="Type: resume, export, scraper, analytics...")
+    search = st.text_input("Search", placeholder="Type: loans, scraper, analytics, payoff...")
 
 filtered = filter_apps(APPS, category, access_levels, search)
 
@@ -39,8 +50,10 @@ with right:
 
         st.divider()
         st.markdown("#### Actions")
-        if selected.get("web_url"):
-            st.link_button("Open Web", selected["web_url"])
+
+        open_url = app_open_url(selected)
+        if open_url and selected.get("access") != "Coming Soon":
+            st.link_button("Open Web", open_url)
         else:
             st.button("Open Web", disabled=True)
 
@@ -53,6 +66,7 @@ with right:
             st.link_button("Open Docs", selected["docs_url"])
         else:
             st.caption("Tip: Add docs_url in portfolio_web/data/apps.py")
+
     else:
         st.write("Click **Details** on any app card to see it here.")
 

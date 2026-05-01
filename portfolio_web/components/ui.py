@@ -1,3 +1,5 @@
+# portfolio_web/components/ui.py
+
 import streamlit as st
 
 
@@ -50,6 +52,24 @@ def access_badge(access: str) -> str:
     return access
 
 
+def get_dev_mode() -> bool:
+    """
+    Local Dev Mode:
+    - if user toggled it in the sidebar, use session_state
+    - otherwise look for query param ?dev=1
+    """
+    if "dev_mode" in st.session_state:
+        return bool(st.session_state["dev_mode"])
+    qp = st.query_params
+    return str(qp.get("dev", "0")).lower() in ("1", "true", "yes", "on")
+
+
+def app_open_url(app: dict) -> str:
+    dev = get_dev_mode()
+    url = (app.get("local_url") if dev else app.get("hosted_url")) or ""
+    return url.strip()
+
+
 def filter_apps(apps, category, access_levels, search_text):
     out = []
     s = (search_text or "").strip().lower()
@@ -80,14 +100,16 @@ def app_card(app: dict):
     st.markdown(tags_html, unsafe_allow_html=True)
 
     c1, c2, c3 = st.columns([1, 1, 1])
+
     with c1:
         if st.button("Details", key=f"details_{app['id']}"):
             st.session_state["selected_app_id"] = app["id"]
             st.switch_page("pages/1_Apps.py")
 
     with c2:
-        if app.get("web_url"):
-            st.link_button("Open Web", app["web_url"])
+        url = app_open_url(app)
+        if url and app.get("access") != "Coming Soon":
+            st.link_button("Open Web", url)
         else:
             st.button("Open Web", disabled=True, key=f"web_{app['id']}")
 

@@ -1,3 +1,5 @@
+# portfolio_web/streamlit_app.py
+
 import streamlit as st
 from data.apps import APPS
 from components.ui import inject_css, app_card
@@ -10,13 +12,23 @@ st.set_page_config(
 
 inject_css()
 
+# Sidebar: Dev Mode toggle
+with st.sidebar:
+    st.session_state["dev_mode"] = st.toggle(
+        "Local Dev Mode",
+        value=st.session_state.get("dev_mode", True),
+    )
+    st.caption("Dev Mode uses localhost ports. Turn off to use hosted URLs.")
+    st.query_params["dev"] = "1" if st.session_state["dev_mode"] else "0"
+
 st.title("Lovely1 Solutions")
-st.subheader("A practical suite of apps for **finance**, **career**, and **utilities**.")
+st.subheader("A practical suite of apps for **finance**, **utilities**, and more.")
 
 a, b, c = st.columns([1.4, 1, 1])
 with a:
     st.write(
-        "Browse the portfolio, open the web versions, or download desktop builds when available."
+        "Use the portfolio to open each web app (local dev now, hosted later), "
+        "or download desktop builds when available."
     )
     x, y = st.columns(2)
     with x:
