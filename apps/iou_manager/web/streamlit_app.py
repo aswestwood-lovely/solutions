@@ -485,6 +485,40 @@ with tab_loans:
 
                 status, due_dt = due_status(L, today)
 
+                st.markdown("### Quick actions")
+
+                quick_amt = default_payment_amount_for_loan(L)
+                qc1, qc2, qc3 = st.columns([1.2, 1.2, 2])
+
+                with qc1:
+                    if st.button("Add standard payment (today)", key=f"{row_key}_quickpay_today"):
+                        if quick_amt <= 0:
+                            st.error(
+                                "No payment_per_period set for this loan. Set agreed payment or term periods first.")
+                        else:
+                            L.setdefault("payments", []).append({"date": today.isoformat(), "amount": float(quick_amt)})
+                            save_loans(loans)
+                            st.success(f"Added payment: ${quick_amt:,.2f} on {today.isoformat()}")
+                            st.rerun()
+
+                with qc2:
+                    if st.button("Add standard payment (due date)", key=f"{row_key}_quickpay_due"):
+                        if quick_amt <= 0:
+                            st.error(
+                                "No payment_per_period set for this loan. Set agreed payment or term periods first.")
+                        else:
+                            L.setdefault("payments", []).append(
+                                {"date": due_dt.isoformat(), "amount": float(quick_amt)})
+                            save_loans(loans)
+                            st.success(f"Added payment: ${quick_amt:,.2f} on {due_dt.isoformat()}")
+                            st.rerun()
+
+                with qc3:
+                    st.caption(
+                        "Adds one payment using the loan’s **payment_per_period** amount. "
+                        "Use 'today' for quick entry, or 'due date' to align exactly to schedule."
+                    )
+
                 rows.append({
                     "borrower": borrower_name(L.get("borrower_id")),
                     "principal": float(L.get("principal", 0.0)),
@@ -739,3 +773,9 @@ with tab_payments:
             save_loans(loans)
             st.success("Payment deleted.")
             st.rerun()
+def default_payment_amount_for_loan(loan: dict) -> float:
+    # payment_per_period is the agreed or calculated per-period payment
+    try:
+        return float(loan.get("payment_per_period", 0.0) or 0.0)
+    except Exception:
+        return 0.0
