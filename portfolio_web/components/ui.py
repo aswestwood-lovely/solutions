@@ -1,5 +1,3 @@
-# portfolio_web/components/ui.py
-
 import streamlit as st
 
 
@@ -53,11 +51,7 @@ def access_badge(access: str) -> str:
 
 
 def get_dev_mode() -> bool:
-    """
-    Local Dev Mode:
-    - if user toggled it in the sidebar, use session_state
-    - otherwise look for query param ?dev=1
-    """
+    # session toggle first; fallback to query param ?dev=1
     if "dev_mode" in st.session_state:
         return bool(st.session_state["dev_mode"])
     qp = st.query_params
@@ -65,6 +59,10 @@ def get_dev_mode() -> bool:
 
 
 def app_open_url(app: dict) -> str:
+    """
+    Picks local_url when dev_mode=True, otherwise hosted_url.
+    Returns "" if none.
+    """
     dev = get_dev_mode()
     url = (app.get("local_url") if dev else app.get("hosted_url")) or ""
     return url.strip()
@@ -75,13 +73,18 @@ def filter_apps(apps, category, access_levels, search_text):
     s = (search_text or "").strip().lower()
 
     for a in apps:
-        if category != "All" and a["category"] != category:
+        if category != "All" and a.get("category") != category:
             continue
-        if access_levels and a["access"] not in access_levels:
+        if access_levels and a.get("access") not in access_levels:
             continue
         if s:
             blob = " ".join(
-                [a["name"], a["summary"], a["category"], " ".join(a.get("tags", []))]
+                [
+                    a.get("name", ""),
+                    a.get("summary", ""),
+                    a.get("category", ""),
+                    " ".join(a.get("tags", [])),
+                ]
             ).lower()
             if s not in blob:
                 continue
@@ -89,37 +92,42 @@ def filter_apps(apps, category, access_levels, search_text):
     return out
 
 
-def app_card(app: dict):
+def app_card(app: dict, key_prefix: str = "card"):
     st.markdown('<div class="app-card">', unsafe_allow_html=True)
 
-    title = f"**{app['name']}** <span class='badge'>{access_badge(app['access'])}</span>"
+    title = f"**{app.get('name','')}** <span class='badge'>{access_badge(app.get('access',''))}</span>"
     st.markdown(title, unsafe_allow_html=True)
-    st.markdown(f"<div class='muted'>{app['summary']}</div>", unsafe_allow_html=True)
+    st.markdown(f"<div class='muted'>{app.get('summary','')}</div>", unsafe_allow_html=True)
 
     tags_html = "".join([f"<span class='tag'>{t}</span>" for t in app.get("tags", [])])
     st.markdown(tags_html, unsafe_allow_html=True)
 
     c1, c2, c3 = st.columns([1, 1, 1])
 
+    k_details = f"{key_prefix}_details_{app['id']}"
+    k_web = f"{key_prefix}_web_{app['id']}"
+    k_dl = f"{key_prefix}_dl_{app['id']}"
+    k_docs = f"{key_prefix}_docs_{app['id']}"
+
     with c1:
-        if st.button("Details", key=f"details_{app['id']}"):
+        if st.button("Details", key=k_details):
             st.session_state["selected_app_id"] = app["id"]
             st.switch_page("pages/1_Apps.py")
 
     with c2:
         url = app_open_url(app)
         if url and app.get("access") != "Coming Soon":
-            st.link_button("Open Web", url)
+            st.link_button("Open Web", url, key=k_web)
         else:
-            st.button("Open Web", disabled=True, key=f"web_{app['id']}")
+            st.button("Open Web", disabled=True, key=k_web)
 
     with c3:
         if app.get("download_url"):
-            st.link_button("Download", app["download_url"])
+            st.link_button("Download", app["download_url"], key=k_dl)
         else:
-            st.button("Download", disabled=True, key=f"dl_{app['id']}")
+            st.button("Download", disabled=True, key=k_dl)
 
     if app.get("docs_url"):
-        st.link_button("Docs", app["docs_url"])
+        st.link_button("Docs", app["docs_url"], key=k_docs)
 
     st.markdown("</div>", unsafe_allow_html=True)

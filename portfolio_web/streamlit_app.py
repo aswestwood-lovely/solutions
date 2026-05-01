@@ -62,7 +62,7 @@ for cat in sorted(by_cat.keys()):
     cols = st.columns(3)
     for i, app in enumerate(items):
         with cols[i % 3]:
-            app_card(app)
+            app_card(app, key_prefix=f"home_{cat}_{i}")
 
 st.divider()
 st.caption("© Lovely1 Solutions • Built with Streamlit")
